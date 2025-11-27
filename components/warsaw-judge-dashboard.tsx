@@ -310,51 +310,74 @@ function MatrixRain({ className }: { className?: string }) {
 }
 
 // ============================================================================
-// SOUND EFFECTS SYSTEM
+// SOUND EFFECTS SYSTEM - Using Web Audio API for programmatic sounds
 // ============================================================================
-const SOUND_EFFECTS = {
-  boot: '/sounds/boot.mp3',
-  click: '/sounds/click.mp3',
-  scan: '/sounds/scan.mp3',
-  alert: '/sounds/alert.mp3',
-  success: '/sounds/success.mp3',
-  fail: '/sounds/fail.mp3',
-  type: '/sounds/type.mp3',
-} as const
 
-type SoundType = keyof typeof SOUND_EFFECTS
+// Global AudioContext to reuse (created on first user interaction)
+let globalAudioContext: AudioContext | null = null
+
+function getAudioContext(): AudioContext | null {
+  if (typeof window === 'undefined') return null
+
+  if (!globalAudioContext) {
+    try {
+      globalAudioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
+    } catch {
+      return null
+    }
+  }
+
+  // Resume if suspended (happens after page becomes inactive)
+  if (globalAudioContext.state === 'suspended') {
+    globalAudioContext.resume()
+  }
+
+  return globalAudioContext
+}
 
 // Sound context for managing audio
 function useSoundEffects() {
-  const [soundEnabled, setSoundEnabled] = useState(false)
-  const audioCache = useRef<Map<string, HTMLAudioElement>>(new Map())
+  const [soundEnabled, setSoundEnabled] = useState(true) // Default to enabled
+  const [audioUnlocked, setAudioUnlocked] = useState(false)
 
-  const playSound = useCallback((sound: SoundType) => {
-    if (!soundEnabled) return
-
-    // Use Web Audio API for better performance
-    try {
-      let audio = audioCache.current.get(sound)
-      if (!audio) {
-        audio = new Audio(SOUND_EFFECTS[sound])
-        audio.volume = 0.3
-        audioCache.current.set(sound, audio)
+  // Unlock audio on first user interaction
+  useEffect(() => {
+    const unlockAudio = () => {
+      const ctx = getAudioContext()
+      if (ctx) {
+        // Create a silent buffer to unlock audio
+        const buffer = ctx.createBuffer(1, 1, 22050)
+        const source = ctx.createBufferSource()
+        source.buffer = buffer
+        source.connect(ctx.destination)
+        source.start(0)
+        setAudioUnlocked(true)
       }
-      audio.currentTime = 0
-      audio.play().catch(() => {
-        // Ignore audio play errors (common on first interaction)
-      })
-    } catch {
-      // Audio not available
+      // Remove listeners after first interaction
+      document.removeEventListener('click', unlockAudio)
+      document.removeEventListener('keydown', unlockAudio)
+      document.removeEventListener('touchstart', unlockAudio)
     }
-  }, [soundEnabled])
+
+    document.addEventListener('click', unlockAudio)
+    document.addEventListener('keydown', unlockAudio)
+    document.addEventListener('touchstart', unlockAudio)
+
+    return () => {
+      document.removeEventListener('click', unlockAudio)
+      document.removeEventListener('keydown', unlockAudio)
+      document.removeEventListener('touchstart', unlockAudio)
+    }
+  }, [])
 
   // Generate beep sounds using Web Audio API (no external files needed)
   const playBeep = useCallback((frequency: number = 800, duration: number = 100, type: OscillatorType = 'square') => {
     if (!soundEnabled) return
 
     try {
-      const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
+      const audioContext = getAudioContext()
+      if (!audioContext) return
+
       const oscillator = audioContext.createOscillator()
       const gainNode = audioContext.createGain()
 
@@ -363,17 +386,49 @@ function useSoundEffects() {
 
       oscillator.frequency.value = frequency
       oscillator.type = type
-      gainNode.gain.value = 0.1
+      gainNode.gain.value = 0.15 // Slightly louder
 
-      oscillator.start()
+      oscillator.start(audioContext.currentTime)
+      // Smooth fade out
+      gainNode.gain.setValueAtTime(0.15, audioContext.currentTime)
       gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration / 1000)
-      oscillator.stop(audioContext.currentTime + duration / 1000)
-    } catch {
-      // Web Audio not available
+      oscillator.stop(audioContext.currentTime + duration / 1000 + 0.1)
+    } catch (e) {
+      console.log('Audio error:', e)
     }
   }, [soundEnabled])
 
-  return { soundEnabled, setSoundEnabled, playSound, playBeep }
+  // Play success sound (ascending tones)
+  const playSuccess = useCallback(() => {
+    if (!soundEnabled) return
+    playBeep(523, 100, 'sine')  // C5
+    setTimeout(() => playBeep(659, 100, 'sine'), 100)  // E5
+    setTimeout(() => playBeep(784, 150, 'sine'), 200)  // G5
+  }, [soundEnabled, playBeep])
+
+  // Play alert/breach sound (descending harsh tones)
+  const playAlert = useCallback(() => {
+    if (!soundEnabled) return
+    playBeep(880, 150, 'sawtooth')  // A5
+    setTimeout(() => playBeep(660, 150, 'sawtooth'), 150)  // E5
+    setTimeout(() => playBeep(440, 200, 'sawtooth'), 300)  // A4
+  }, [soundEnabled, playBeep])
+
+  // Play scan/processing sound
+  const playScan = useCallback(() => {
+    if (!soundEnabled) return
+    playBeep(440, 80, 'sine')
+  }, [soundEnabled, playBeep])
+
+  return {
+    soundEnabled,
+    setSoundEnabled,
+    playBeep,
+    playSuccess,
+    playAlert,
+    playScan,
+    audioUnlocked
+  }
 }
 
 // ============================================================================
@@ -664,7 +719,7 @@ export function WarsawJudgeDashboard() {
   const pollingRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
 
   // Sound effects
-  const { soundEnabled, setSoundEnabled, playBeep } = useSoundEffects()
+  const { soundEnabled, setSoundEnabled, playBeep, playSuccess, playAlert, playScan } = useSoundEffects()
 
   // Set initial timestamps after hydration to avoid mismatch
   useEffect(() => {
@@ -782,14 +837,12 @@ export function WarsawJudgeDashboard() {
     const failedAgents = agents.filter(a => a.status === "FAIL").length
     if (failedAgents > 0) {
       setBreachDetected(true)
-      // Alert sound - descending tones
-      playBeep(800, 150, 'sawtooth')
-      setTimeout(() => playBeep(600, 150, 'sawtooth'), 150)
-      setTimeout(() => playBeep(400, 200, 'sawtooth'), 300)
+      // Play alert sound
+      playAlert()
       const timer = setTimeout(() => setBreachDetected(false), 3000)
       return () => clearTimeout(timer)
     }
-  }, [agents, playBeep])
+  }, [agents, playAlert])
 
   // Track which backend logs we've already processed
   const processedLogsRef = useRef<Map<string, number>>(new Map())
@@ -830,16 +883,13 @@ export function WarsawJudgeDashboard() {
           if (newStatus !== agent.status) {
             if (newStatus === "PROCESSING" && agent.status === "QUEUED") {
               addLog("INFO", `>> Engaging target: ${agent.name}`)
-              playBeep(500, 100, 'sine')
+              playScan()
             } else if (newStatus === "PASS") {
               addLog("INFO", `Target ${agent.name}: SECURE`)
-              // Success sound - ascending chime
-              playBeep(600, 100, 'sine')
-              setTimeout(() => playBeep(800, 100, 'sine'), 100)
-              setTimeout(() => playBeep(1000, 150, 'sine'), 200)
+              playSuccess()
             } else if (newStatus === "FAIL") {
               addLog("ALERT", `BREACH DETECTED: ${agent.name}`)
-              // Handled by breach effect
+              // Alert sound handled by breach effect
             }
           }
 
@@ -872,7 +922,7 @@ export function WarsawJudgeDashboard() {
     } catch (error) {
       console.error("Polling error:", error)
     }
-  }, [addLog, playBeep])
+  }, [addLog, playScan, playSuccess])
 
   // Cleanup polling on unmount
   useEffect(() => {
@@ -923,9 +973,9 @@ export function WarsawJudgeDashboard() {
     addLog("INJECT", `Protocol: ${newAgent.protocol}`)
 
     // Launch sound - quick ascending beeps
-    playBeep(300, 50, 'square')
-    setTimeout(() => playBeep(400, 50, 'square'), 50)
-    setTimeout(() => playBeep(500, 50, 'square'), 100)
+    playBeep(300, 80, 'square')
+    setTimeout(() => playBeep(450, 80, 'square'), 80)
+    setTimeout(() => playBeep(600, 120, 'square'), 160)
 
     try {
       const response = await fetch("/api/audit", {

@@ -8,7 +8,7 @@ const nextConfig = {
     unoptimized: true,
   },
   // Required for Stagehand/Playwright to work in serverless
-  serverExternalPackages: ['@browserbasehq/stagehand', 'playwright', 'playwright-core'],
+  serverExternalPackages: ['@browserbasehq/stagehand', 'playwright', 'playwright-core', 'pino-pretty'],
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',
