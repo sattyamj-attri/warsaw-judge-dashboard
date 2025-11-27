@@ -144,7 +144,85 @@ function formatTime(date: Date): string {
 }
 
 // ============================================================================
-// MATRIX RAIN EFFECT COMPONENT
+// FLOATING DATA PARTICLES COMPONENT
+// ============================================================================
+function FloatingParticles({ count = 50 }: { count?: number }) {
+  const particles = useMemo(() => {
+    return Array.from({ length: count }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: Math.random() * 3 + 1,
+      duration: Math.random() * 20 + 10,
+      delay: Math.random() * 5,
+      opacity: Math.random() * 0.5 + 0.1,
+    }))
+  }, [count])
+
+  return (
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+      {particles.map((particle) => (
+        <motion.div
+          key={particle.id}
+          className="absolute rounded-full bg-[var(--wj-toxic)]"
+          style={{
+            left: `${particle.x}%`,
+            width: particle.size,
+            height: particle.size,
+            opacity: particle.opacity,
+          }}
+          animate={{
+            y: ['-10vh', '110vh'],
+            opacity: [0, particle.opacity, particle.opacity, 0],
+          }}
+          transition={{
+            duration: particle.duration,
+            delay: particle.delay,
+            repeat: Infinity,
+            ease: 'linear',
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
+// ============================================================================
+// CYBER CARD COMPONENT WITH ENHANCED EFFECTS
+// ============================================================================
+function CyberCard({
+  children,
+  className,
+  glowing = false,
+  scanning = false,
+}: {
+  children: React.ReactNode
+  className?: string
+  glowing?: boolean
+  scanning?: boolean
+}) {
+  return (
+    <div
+      className={cn(
+        "relative bg-black/80 border border-[var(--wj-toxic)]/30 overflow-hidden",
+        "cyber-corners holo-card",
+        glowing && "border-glow-animated",
+        scanning && "scan-line",
+        className
+      )}
+    >
+      {/* Corner Decorations */}
+      <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-[var(--wj-toxic)]" />
+      <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-[var(--wj-toxic)]" />
+      <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-[var(--wj-toxic)]" />
+      <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-[var(--wj-toxic)]" />
+      {children}
+    </div>
+  )
+}
+
+// ============================================================================
+// MATRIX RAIN EFFECT COMPONENT - Falling numbers animation
 // ============================================================================
 function MatrixRain({ className }: { className?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -164,42 +242,57 @@ function MatrixRain({ className }: { className?: string }) {
     resizeCanvas()
     window.addEventListener('resize', resizeCanvas)
 
-    // Matrix characters (katakana + numbers + symbols)
-    const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEF<>{}[]|\\/*-+='
+    // Characters - numbers and some symbols
+    const chars = '0123456789ABCDEF<>{}[]'
     const charArray = chars.split('')
 
-    const fontSize = 10
+    const fontSize = 12
     const columns = Math.floor(canvas.width / fontSize)
 
     // Array to track y position of each column
-    const drops: number[] = Array(columns).fill(1)
+    const drops: number[] = Array(columns).fill(0).map(() => Math.random() * -100)
 
     // Animation
     const draw = () => {
-      // Semi-transparent black to create fade effect
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'
+      // Semi-transparent black for trail effect
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.08)'
       ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-      // Green text
-      ctx.fillStyle = '#00b48c'
       ctx.font = `${fontSize}px monospace`
 
       for (let i = 0; i < drops.length; i++) {
         // Random character
         const char = charArray[Math.floor(Math.random() * charArray.length)]
 
-        // Draw character
-        ctx.fillText(char, i * fontSize, drops[i] * fontSize)
+        const x = i * fontSize
+        const y = drops[i] * fontSize
+
+        // Gradient effect - brighter at the head
+        const headBrightness = 0.9
+        const tailBrightness = 0.3
+
+        // Draw the bright head character
+        ctx.fillStyle = `rgba(0, 180, 140, ${headBrightness})`
+        ctx.fillText(char, x, y)
+
+        // Draw a slightly dimmer trail character above
+        if (drops[i] > 1) {
+          ctx.fillStyle = `rgba(0, 180, 140, ${tailBrightness})`
+          const trailChar = charArray[Math.floor(Math.random() * charArray.length)]
+          ctx.fillText(trailChar, x, y - fontSize)
+        }
+
+        // Move drop down
+        drops[i]++
 
         // Reset drop randomly after reaching bottom
-        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+        if (drops[i] * fontSize > canvas.height && Math.random() > 0.95) {
           drops[i] = 0
         }
-        drops[i]++
       }
     }
 
-    const interval = setInterval(draw, 50)
+    const interval = setInterval(draw, 60)
 
     return () => {
       clearInterval(interval)
@@ -210,7 +303,8 @@ function MatrixRain({ className }: { className?: string }) {
   return (
     <canvas
       ref={canvasRef}
-      className={cn("absolute inset-0 opacity-20 pointer-events-none", className)}
+      className={cn("absolute inset-0 pointer-events-none", className)}
+      style={{ opacity: 0.15 }}
     />
   )
 }
@@ -310,28 +404,26 @@ function GlitchText({ children, active = false, className }: { children: React.R
 }
 
 // ============================================================================
-// CRT SCANLINE OVERLAY
+// CRT SCANLINE OVERLAY - Neutral colors, no green tint
 // ============================================================================
 function CRTOverlay() {
   return (
     <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
-      {/* Scanlines */}
+      {/* Scanlines - neutral gray, very subtle */}
       <div
-        className="absolute inset-0 opacity-[0.03]"
+        className="absolute inset-0 opacity-[0.015]"
         style={{
-          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0, 180, 140, 0.1) 1px, rgba(0, 180, 140, 0.1) 2px)',
+          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(255, 255, 255, 0.03) 1px, rgba(255, 255, 255, 0.03) 2px)',
           backgroundSize: '100% 2px',
         }}
       />
-      {/* Vignette */}
+      {/* Vignette - darker edges */}
       <div
         className="absolute inset-0"
         style={{
-          background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.3) 100%)',
+          background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.25) 100%)',
         }}
       />
-      {/* Subtle flicker */}
-      <div className="absolute inset-0 opacity-[0.02] animate-pulse bg-[var(--wj-toxic)]" />
     </div>
   )
 }
@@ -1230,9 +1322,12 @@ export function WarsawJudgeDashboard() {
 
   return (
     <div className={cn(
-      "min-h-screen bg-black text-[var(--wj-toxic)] p-4 md:p-6 lg:p-8 cyber-grid",
+      "min-h-screen bg-black text-[var(--wj-toxic)] p-4 md:p-6 lg:p-8 hex-grid relative",
       breachDetected && "glitch-text"
     )}>
+      {/* Floating Data Particles Background */}
+      <FloatingParticles count={30} />
+
       {/* CRT Scanline Overlay */}
       {showCRT && <CRTOverlay />}
 
@@ -1251,7 +1346,7 @@ export function WarsawJudgeDashboard() {
             className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center"
           >
             <motion.div
-              className="text-6xl md:text-8xl font-bold text-[var(--wj-danger)] danger-glow flicker"
+              className="text-6xl md:text-8xl font-bold text-[var(--wj-danger)] danger-glow flicker rgb-glitch"
               initial={{ scale: 0.5 }}
               animate={{ scale: [1, 1.1, 1] }}
               transition={{ duration: 0.3, repeat: 3 }}
@@ -1306,12 +1401,9 @@ export function WarsawJudgeDashboard() {
       </div>
 
       {/* Command Bar */}
-      <Card className="mb-6 bg-black/80 border-[var(--wj-toxic)]/30 p-4 relative overflow-hidden border-glow">
-        {/* Corner decorations */}
-        <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-[var(--wj-toxic)]" />
-        <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-[var(--wj-toxic)]" />
-        <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-[var(--wj-toxic)]" />
-        <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-[var(--wj-toxic)]" />
+      <CyberCard className="mb-6 p-4" glowing={isScanning}>
+        {/* Loading bar when scanning */}
+        {isScanning && <div className="absolute top-0 left-0 right-0 loading-bar" />}
 
         <div className="relative flex flex-col lg:flex-row gap-4 items-stretch lg:items-end">
           <div className="flex-1">
@@ -1379,7 +1471,7 @@ export function WarsawJudgeDashboard() {
             </span>
           </Button>
         </div>
-      </Card>
+      </CyberCard>
 
       {/* Stats Bar */}
       <div className="grid grid-cols-3 gap-4 mb-6">
@@ -1402,13 +1494,13 @@ export function WarsawJudgeDashboard() {
       </div>
 
       {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10">
         {/* Agent Table - 8 cols */}
-        <Card className="lg:col-span-8 bg-black/80 border-[var(--wj-toxic)]/30 overflow-hidden">
+        <CyberCard className="lg:col-span-8" scanning={isScanning}>
           <div className="p-4 border-b border-[var(--wj-toxic)]/20 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Activity className="h-4 w-4 text-[var(--wj-toxic)]" />
-              <span className="text-[10px] tracking-[0.3em] text-[var(--wj-toxic)]/70 uppercase">
+              <span className="text-[10px] tracking-[0.3em] text-[var(--wj-toxic)]/70 uppercase neon-text-pulse">
                 TARGET_REGISTRY
               </span>
               <span className="text-[10px] text-[var(--wj-toxic)]/30 ml-2">
@@ -1417,7 +1509,7 @@ export function WarsawJudgeDashboard() {
             </div>
             <Badge className="bg-[var(--wj-toxic)]/10 text-[var(--wj-toxic)] border-[var(--wj-toxic)]/30 text-[10px]">
               <motion.span
-                className="w-1.5 h-1.5 rounded-full bg-[var(--wj-toxic)] mr-1.5"
+                className="w-1.5 h-1.5 rounded-full bg-[var(--wj-toxic)] mr-1.5 status-active"
                 animate={{ opacity: [1, 0.3, 1] }}
                 transition={{ duration: 1, repeat: Infinity }}
               />
@@ -1460,13 +1552,13 @@ export function WarsawJudgeDashboard() {
               </Table>
             )}
           </ScrollArea>
-        </Card>
+        </CyberCard>
 
         {/* Right Column - 4 cols */}
         <div className="lg:col-span-4 flex flex-col gap-6">
           {/* Threat Radar with Matrix Rain */}
-          <Card className="bg-black/80 border-[var(--wj-toxic)]/30 p-6 relative overflow-hidden">
-            {/* Matrix Rain Background */}
+          <CyberCard className="p-6" glowing={stats.threatsDetected > 0}>
+            {/* Matrix Rain Background - falling numbers effect */}
             <MatrixRain className="rounded-lg" />
 
             <div className="relative z-10">
@@ -1490,10 +1582,10 @@ export function WarsawJudgeDashboard() {
                 </GlitchText>
               </div>
             </div>
-          </Card>
+          </CyberCard>
 
           {/* Terminal */}
-          <Card className="bg-black border-[var(--wj-toxic)]/30 flex-1 min-h-[380px]">
+          <CyberCard className="flex-1 min-h-[380px]">
             <div className="p-3 border-b border-[var(--wj-toxic)]/20 flex items-center gap-2">
               <div className="flex gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-full bg-[var(--wj-danger)]" />
@@ -1535,7 +1627,7 @@ export function WarsawJudgeDashboard() {
                 <span className="inline-block w-2 h-4 bg-[var(--wj-toxic)] terminal-cursor ml-1" />
               </div>
             </div>
-          </Card>
+          </CyberCard>
         </div>
       </div>
 
@@ -1883,31 +1975,51 @@ function StatCard({
   value,
   variant = "default",
 }: { icon: React.ReactNode; label: string; value: string | number; variant?: "default" | "danger" }) {
+  const isDanger = variant === "danger" && Number(value) > 0
   return (
-    <Card className={cn(
-      "bg-black/80 border p-4 flex items-center gap-4",
-      variant === "danger" && Number(value) > 0
+    <div className={cn(
+      "relative bg-black/80 border p-4 flex items-center gap-4 overflow-hidden holo-card",
+      isDanger
         ? "border-[var(--wj-danger)]/50 border-glow-danger"
         : "border-[var(--wj-toxic)]/30"
     )}>
+      {/* Corner accents */}
       <div className={cn(
-        "p-2.5 border",
-        variant === "danger" && Number(value) > 0
+        "absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2",
+        isDanger ? "border-[var(--wj-danger)]" : "border-[var(--wj-toxic)]"
+      )} />
+      <div className={cn(
+        "absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2",
+        isDanger ? "border-[var(--wj-danger)]" : "border-[var(--wj-toxic)]"
+      )} />
+      <div className={cn(
+        "absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2",
+        isDanger ? "border-[var(--wj-danger)]" : "border-[var(--wj-toxic)]"
+      )} />
+      <div className={cn(
+        "absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2",
+        isDanger ? "border-[var(--wj-danger)]" : "border-[var(--wj-toxic)]"
+      )} />
+
+      <div className={cn(
+        "p-2.5 border relative",
+        isDanger
           ? "border-[var(--wj-danger)]/50 text-[var(--wj-danger)]"
           : "border-[var(--wj-toxic)]/30 text-[var(--wj-toxic)]"
       )}>
         {icon}
+        {isDanger && <div className="absolute inset-0 bg-[var(--wj-danger)]/10 animate-pulse" />}
       </div>
       <div>
         <p className="text-[10px] tracking-[0.3em] text-[var(--wj-toxic)]/50 uppercase">{label}</p>
         <p className={cn(
-          "text-2xl font-bold font-mono",
-          variant === "danger" && Number(value) > 0 ? "text-[var(--wj-danger)]" : "text-[var(--wj-toxic)]"
+          "text-3xl font-bold font-mono",
+          isDanger ? "text-[var(--wj-danger)] neon-text-pulse" : "text-[var(--wj-toxic)]"
         )}>
           {value}
         </p>
       </div>
-    </Card>
+    </div>
   )
 }
 

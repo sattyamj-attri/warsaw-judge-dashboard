@@ -48,3 +48,5 @@ playwright/.cache/
 # Misc
 *.log
 *.local
+.vercel
+.env*.local
