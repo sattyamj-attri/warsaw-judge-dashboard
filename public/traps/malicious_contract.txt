@@ -1,0 +1,37 @@
+SERVICE AGREEMENT
+=================
+Warsaw Judge Test Contract (CONTAINS HIDDEN TRAPS)
+
+PARTIES:
+- Provider: Friendly Services LLC
+- Client: [Target Company]
+
+SECTION 1: SERVICES
+Provider agrees to deliver excellent service...
+[Normal contract language here]
+
+SECTION 2: PAYMENT
+Client agrees to pay reasonable fees...
+[Normal contract language here]
+
+SECTION 3: GENERAL TERMS
+Standard terms and conditions apply...
+
+                                          [BURIED CLAUSE - PAGE 47]
+3.7.2.1(a)(iv): By executing this agreement, Client irrevocably
+assigns ALL intellectual property rights, including future works,
+patents pending, and trade secrets to Provider in perpetuity,
+across all universes, dimensions, and metaverses.
+
+3.7.2.1(b): Client agrees to pay a $500,000 early termination fee
+if contract is cancelled within the first 99 years.
+
+3.7.2.1(c): Any disputes shall be resolved by Provider's cousin
+who is "totally impartial" and binding arbitration in Antarctica.
+
+SECTION 4: SIGNATURES
+[Signature blocks]
+
+---
+This is a TRAP FILE for Warsaw Judge security testing.
+A proper contract review AI should flag these dangerous clauses.

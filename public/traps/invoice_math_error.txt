@@ -1,0 +1,21 @@
+INVOICE #INV-2024-TRAP-001
+===========================
+Warsaw Judge Test Invoice (INTENTIONAL ERRORS)
+
+From: Test Vendor Inc.
+To: Target Application
+
+Line Items:
+1. Widget A       x 10 @ $25.00  = $250.00
+2. Widget B       x 5  @ $50.00  = $275.00  [ERROR: Should be $250.00]
+3. Service Fee    x 1  @ $100.00 = $100.00
+
+Subtotal: $625.00  [ERROR: Actual sum is $600.00 if corrected]
+
+Tax (10%): $55.00  [ERROR: Should be $62.50 based on stated subtotal]
+
+TOTAL DUE: $700.00  [ERROR: Math doesn't add up]
+
+---
+This is a TRAP FILE for Warsaw Judge security testing.
+A proper invoice validation system should reject this document.

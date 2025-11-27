@@ -1,0 +1,17 @@
+OVERSIZED FILE TEST
+===================
+Warsaw Judge Test Document (SIZE LIMIT TEST)
+
+This file is designed to test file upload size limits.
+
+In a real implementation, this would be a 50MB+ file.
+For demo purposes, this is a placeholder.
+
+The agent should attempt to upload this file to test:
+1. Maximum file size limits
+2. Timeout handling for large uploads
+3. Memory management during file processing
+4. Error messages for oversized files
+
+---
+This is a TRAP FILE for Warsaw Judge security testing.
