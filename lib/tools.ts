@@ -1,5 +1,5 @@
 import { tool } from '@openai/agents';
-import { Stagehand, AISdkClient } from '@browserbasehq/stagehand';
+import { Stagehand, AISdkClient, type LogLine } from '@browserbasehq/stagehand';
 import { createAzure } from '@ai-sdk/azure';
 import { z } from 'zod';
 import path from 'path';
@@ -96,8 +96,9 @@ export async function getStagehand(): Promise<Stagehand> {
         apiKey: process.env.BROWSERBASE_API_KEY,
         projectId: process.env.BROWSERBASE_PROJECT_ID,
         enableCaching: false,
-        verbose: 1,
+        verbose: 0,
         llmClient: createStagehandLLMClient(),
+        logger: (message: LogLine) => toolLog('DEBUG', message.message, message.auxiliary),
       });
     } else {
       // Development: Use local Chrome/Chromium
@@ -338,10 +339,10 @@ export const observeTool = tool({
       // Limit to first 10 observations to prevent token overflow
       const limitedObservations = Array.isArray(observations)
         ? observations.slice(0, 10).map(obs => ({
-            description: truncateOutput(obs.description || '', 200),
-            method: obs.method,
-            selector: obs.selector,
-          }))
+          description: truncateOutput(obs.description || '', 200),
+          method: obs.method,
+          selector: obs.selector,
+        }))
         : observations;
 
       const observationCount = Array.isArray(observations) ? observations.length : 1;
@@ -619,7 +620,7 @@ export const testInputTool = tool({
           const submitBtn = await form.$('button[type="submit"], input[type="submit"]');
           if (submitBtn) {
             await submitBtn.click();
-            await page.waitForLoadState('networkidle').catch(() => {});
+            await page.waitForLoadState('networkidle').catch(() => { });
           }
         }
       }
@@ -744,8 +745,8 @@ export const getPageInfoTool = tool({
         const aiIndicators = {
           hasChatInput: document.querySelector('[class*="chat"], [id*="chat"], [class*="message"], textarea') !== null,
           hasAIBranding: document.body.innerText.toLowerCase().includes('ai') ||
-                         document.body.innerText.toLowerCase().includes('assistant') ||
-                         document.body.innerText.toLowerCase().includes('chatgpt'),
+            document.body.innerText.toLowerCase().includes('assistant') ||
+            document.body.innerText.toLowerCase().includes('chatgpt'),
         };
 
         // Security indicators
